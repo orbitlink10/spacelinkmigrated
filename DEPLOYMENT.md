@@ -1,4 +1,50 @@
-# Laravel storage on the hosting server
+# Hosting deployment
+
+## Repair LiteSpeed 404 errors on page URLs
+
+If `/how-to-order` returns a LiteSpeed 404 but `/index.php/how-to-order` loads,
+Laravel's route works and the server is not rewriting page URLs to `index.php`.
+The repository previously ignored `.htaccess`, so Git deployments omitted it.
+The old file named `htaccess` (without the leading dot) also pointed to `public/`,
+which has no `index.php` in this project. That obsolete file has been removed.
+
+Deploy the repository's root `.htaccess` to:
+
+```text
+/home3/satellit/spacelinkkenya.co.ke/.htaccess
+```
+
+In cPanel File Manager, enable **Show Hidden Files (dotfiles)** and ensure the
+filename is exactly `.htaccess`, beside the root `index.php`. Back up any existing
+server file and preserve hosting-generated PHP handler blocks when merging the
+repository's rules. The domain's document root must be this application directory
+for the current layout; do not point it to `public/`.
+
+The essential rewrite block, included in the supplied file, is:
+
+```apache
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+```
+
+After deploying, clear any old Laravel route cache from cPanel Terminal or SSH:
+
+```sh
+cd /home3/satellit/spacelinkkenya.co.ke || exit 1
+php artisan route:clear
+```
+
+Verify `/how-to-order`, `/about`, `/services`, and `/shop` without `index.php` in
+their URLs. Existing asset files should still load directly. If the LiteSpeed
+404 persists with the correct file in place, ask the host to confirm `.htaccess`
+rewrite rules are enabled for this domain's document root. See the
+[LiteSpeed 404 troubleshooting guide](https://docs.litespeedtech.com/lsws/cp/cpanel/404-error/).
+
+## Laravel storage on the hosting server
 
 The file session driver writes to `storage/framework/sessions`. If that directory
 is absent, requests fail with `file_put_contents(...): No such file or directory`.
